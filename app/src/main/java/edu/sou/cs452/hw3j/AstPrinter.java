@@ -1,10 +1,6 @@
+package edu.sou.cs452.hw3j;
 
- package edu.sou.cs452.hw3j;
-
- public class AstPrinter implements Expr.Visitor<String> {
-    String print(Expr expr) {
-        return expr.accept(this);
-    }
+public class AstPrinter implements Expr.Visitor<String> {
 
     @Override
     public String visitBinaryExpr(Expr.Binary expr) {
@@ -30,6 +26,10 @@
     @Override
     public String visitVariableExpr(Expr.Variable expr) {
         return expr.name.lexeme;
+    }
+
+    public String print(Expr expr) {
+        return expr.accept(this);
     }
 
     private String parenthesize(String name, Expr... exprs) {

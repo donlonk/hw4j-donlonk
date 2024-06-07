@@ -16,13 +16,13 @@ public class Scanner {
 
     static {
         keywords = new HashMap<>();
-        keywords.put("actor", TokenType.ACTOR);
-        keywords.put("new", TokenType.NEW);
-        keywords.put("env", TokenType.ENV);
         keywords.put("print", TokenType.PRINT);
         keywords.put("let", TokenType.LET);
         keywords.put("true", TokenType.TRUE);
         keywords.put("false", TokenType.FALSE);
+        keywords.put("actor", TokenType.ACTOR);
+        keywords.put("new", TokenType.NEW);
+        keywords.put("env", TokenType.ENV);
     }
 
     public Scanner(String source) {
@@ -46,21 +46,28 @@ public class Scanner {
             case ')': addToken(TokenType.RIGHT_PAREN); break;
             case '.': addToken(TokenType.DOT); break;
             case '+': addToken(TokenType.PLUS); break;
+            case '=': addToken(TokenType.EQUAL); break;
             case ':': addToken(TokenType.COLON); break;
             case '!': addToken(TokenType.BANG); break;
-            case '=': addToken(TokenType.EQUAL); break;
+            case '>': addToken(TokenType.GREATER); break;
+            case '<': addToken(TokenType.LESS); break;
+            case '"': string(); break;
             case ' ':
             case '\r':
             case '\t':
+                // Ignore whitespace.
                 break;
             case '\n':
                 line++;
                 break;
-            case '"': string(); break;
+            // Handle digits
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9':
+                number();
+                break;
+            // Handle identifiers
             default:
-                if (isDigit(c)) {
-                    number();
-                } else if (isAlpha(c)) {
+                if (isAlpha(c)) {
                     identifier();
                 } else {
                     System.err.println("Unexpected character: " + c);
@@ -71,9 +78,7 @@ public class Scanner {
 
     private void identifier() {
         while (isAlphaNumeric(peek())) advance();
-
         String text = source.substring(start, current);
-
         TokenType type = keywords.get(text);
         if (type == null) type = TokenType.IDENTIFIER;
         addToken(type);
@@ -82,9 +87,9 @@ public class Scanner {
     private void number() {
         while (isDigit(peek())) advance();
 
+        // Look for a fractional part.
         if (peek() == '.' && isDigit(peekNext())) {
-            advance();
-
+            advance(); // Consume the "."
             while (isDigit(peek())) advance();
         }
 
@@ -102,18 +107,17 @@ public class Scanner {
             return;
         }
 
-        advance();
-
+        advance(); // The closing "
         String value = source.substring(start + 1, current - 1);
         addToken(TokenType.STRING, value);
     }
 
-    private boolean match(char expected) {
-        if (isAtEnd()) return false;
-        if (source.charAt(current) != expected) return false;
+    private boolean isAtEnd() {
+        return current >= source.length();
+    }
 
-        current++;
-        return true;
+    private char advance() {
+        return source.charAt(current++);
     }
 
     private char peek() {
@@ -126,24 +130,6 @@ public class Scanner {
         return source.charAt(current + 1);
     }
 
-    private boolean isAlpha(char c) {
-        return (c >= 'a' && c <= 'z') ||
-               (c >= 'A' && c <= 'Z') ||
-                c == '_';
-    }
-
-    private boolean isAlphaNumeric(char c) {
-        return isAlpha(c) || isDigit(c);
-    }
-
-    private boolean isDigit(char c) {
-        return c >= '0' && c <= '9';
-    }
-
-    private char advance() {
-        return source.charAt(current++);
-    }
-
     private void addToken(TokenType type) {
         addToken(type, null);
     }
@@ -153,7 +139,15 @@ public class Scanner {
         tokens.add(new Token(type, text, literal, line));
     }
 
-    private boolean isAtEnd() {
-        return current >= source.length();
+    private boolean isAlpha(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    }
+
+    private boolean isAlphaNumeric(char c) {
+        return isAlpha(c) || isDigit(c);
+    }
+
+    private boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
     }
 }

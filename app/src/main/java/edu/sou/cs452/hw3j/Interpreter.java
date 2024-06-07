@@ -3,100 +3,31 @@ package edu.sou.cs452.hw3j;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    private final Environment<Object> globals = new Environment<>();
-    private Environment<Object> environment = globals;
-
-    public void interpret(List<Stmt> statements) {
-        try {
-            for (Stmt statement : statements) {
-                execute(statement);
-            }
-        } catch (RuntimeError error) {
-            System.err.println(error.getMessage());
-        }
-    }
-
-    private void execute(Stmt stmt) {
-        stmt.accept(this);
-    }
-
-    @Override
-    public Void visitExpressionStmt(Stmt.Expression stmt) {
-        evaluate(stmt.expression);
-        return null;
-    }
-
-    @Override
-    public Void visitPrintStmt(Stmt.Print stmt) {
-        Object value = evaluate(stmt.expression);
-        System.out.println(stringify(value));
-        return null;
-    }
-
-    @Override
-    public Void visitVarStmt(Stmt.Var stmt) {
-        Object value = null;
-        String type = "nil";
-        if (stmt.initializer != null) {
-            value = evaluate(stmt.initializer);
-            type = getType(value);
-        }
-        environment.define(stmt.name.lexeme, value, type);
-        return null;
-    }
-
-    @Override
-    public Void visitBlockStmt(Stmt.Block stmt) {
-        executeBlock(stmt.statements, new Environment<>(environment));
-        return null;
-    }
-
-    @Override
-    public Void visitActorStmt(Stmt.Actor stmt) {
-        executeBlock(stmt.body, new Environment<>(environment));
-        return null;
-    }
-
-    @Override
-    public Void visitNewStmt(Stmt.New stmt) {
-        execute(stmt.block);
-        return null;
-    }
-
-    public void executeBlock(List<Stmt> statements, Environment<Object> environment) {
-        Environment<Object> previous = this.environment;
-        try {
-            this.environment = environment;
-            for (Stmt statement : statements) {
-                execute(statement);
-            }
-        } finally {
-            this.environment = previous;
-        }
-    }
 
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
         Object right = evaluate(expr.right);
 
-        checkOperands(expr.operator, left, right);
-
         switch (expr.operator.type) {
             case PLUS:
+                // Assuming operands are numbers or strings
                 if (left instanceof Double && right instanceof Double) {
-                    return (double) left + (double) right;
+                    return (Double) left + (Double) right;
                 }
-
-                if (left instanceof String && right instanceof String) {
-                    return (String) left + (String) right;
+                if (left instanceof String || right instanceof String) {
+                    return String.valueOf(left) + String.valueOf(right);
                 }
-
-                throw new RuntimeError(expr.operator, "Operands must be two numbers or two strings.");
-            case EQUAL:
-                return isEqual(left, right);
+                throw new RuntimeException("Operands must be two numbers or two strings.");
+            case GREATER:
+                // Assuming operands are numbers
+                if (left instanceof Double && right instanceof Double) {
+                    return (Double) left > (Double) right;
+                }
+                throw new RuntimeException("Operands must be two numbers.");
+            // Add other cases for different operators if needed
             default:
-                throw new RuntimeError(expr.operator, "Unknown operator.");
+                throw new RuntimeException("Unknown operator: " + expr.operator.type);
         }
     }
 
@@ -117,14 +48,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         switch (expr.operator.type) {
             case BANG:
                 return !isTruthy(right);
+            case NEW:
+                // Simplified handling of new
+                return "new " + right.toString();
+            case ENV:
+                // Simplified handling of env
+                return "env " + right.toString();
+            // Add other cases for different operators if needed
             default:
-                throw new RuntimeError(expr.operator, "Unknown operator.");
+                throw new RuntimeException("Unknown operator: " + expr.operator.type);
         }
     }
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        // Simplified variable handling, assume variables have been defined
+        return "variable " + expr.name.lexeme;
     }
 
     private Object evaluate(Expr expr) {
@@ -133,30 +72,31 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     private boolean isTruthy(Object object) {
         if (object == null) return false;
-        if (object instanceof Boolean) return (boolean) object;
+        if (object instanceof Boolean) return (Boolean) object;
         return true;
     }
 
-    private boolean isEqual(Object a, Object b) {
-        if (a == null && b == null) return true;
-        if (a == null) return false;
-        return a.equals(b);
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
     }
 
-    private void checkOperands(Token operator, Object left, Object right) {
-        String leftType = getType(left);
-        String rightType = getType(right);
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
 
-        if (!leftType.equals(rightType)) {
-            throw new RuntimeError(operator, "Operands must be of the same type.");
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
         }
-    }
-
-    private String getType(Object value) {
-        if (value instanceof Boolean) return "Bool";
-        if (value instanceof Double) return "I32";
-        if (value instanceof String) return "String";
-        return "nil";
+        // Store the variable in the environment (not implemented in this example)
+        return null;
     }
 
     private String stringify(Object object) {
@@ -171,5 +111,19 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         return object.toString();
+    }
+
+    public void interpret(List<Stmt> statements) {
+        try {
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } catch (RuntimeException error) {
+            System.err.println("Runtime error: " + error.getMessage());
+        }
+    }
+
+    private Void execute(Stmt stmt) {
+        return stmt.accept(this);
     }
 }

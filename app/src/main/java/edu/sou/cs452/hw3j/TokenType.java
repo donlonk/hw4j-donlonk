@@ -2,7 +2,7 @@ package edu.sou.cs452.hw3j;
 
 public enum TokenType {
     // Single-character tokens.
-    LEFT_PAREN, RIGHT_PAREN, DOT, PLUS, EQUAL, COLON,
+    LEFT_PAREN, RIGHT_PAREN, DOT, PLUS, EQUAL, COLON, GREATER, LESS,
 
     // One or two character tokens.
     BANG,

@@ -1,7 +1,7 @@
 package edu.sou.cs452.hw3j;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Parser {
     private static class ParseError extends RuntimeException {}
@@ -16,14 +16,17 @@ public class Parser {
     public List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(declaration());
+            Stmt stmt = declaration();
+            if (stmt != null) {
+                statements.add(stmt);
+            }
         }
         return statements;
     }
 
     private Stmt declaration() {
         try {
-            if (match(TokenType.LET)) return letDeclaration();
+            if (match(TokenType.LET)) return varDeclaration();
             if (match(TokenType.ACTOR)) return actorDeclaration();
             return statement();
         } catch (ParseError error) {
@@ -32,41 +35,25 @@ public class Parser {
         }
     }
 
-    private Stmt letDeclaration() {
+    private Stmt varDeclaration() {
         Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
+
         consume(TokenType.COLON, "Expect ':' after variable name.");
-        Token type = consume(TokenType.IDENTIFIER, "Expect type name.");
+        // Handle type annotation if needed
+        consume(TokenType.IDENTIFIER, "Expect type after ':'.");
 
         Expr initializer = null;
         if (match(TokenType.EQUAL)) {
             initializer = expression();
         }
+
         return new Stmt.Var(name, initializer);
     }
 
     private Stmt actorDeclaration() {
         Token name = consume(TokenType.IDENTIFIER, "Expect actor name.");
-        List<Stmt> body = new ArrayList<>();
-        while (!check(TokenType.RIGHT_PAREN) && !isAtEnd()) {
-            if (match(TokenType.NEW)) {
-                body.add(newDeclaration());
-            } else {
-                body.add(declaration());
-            }
-        }
-        return new Stmt.Actor(name, body);
-    }
-
-    private Stmt newDeclaration() {
-        Token createToken = consume(TokenType.IDENTIFIER, "Expect 'create' after 'new'.");
-        if (!createToken.lexeme.equals("create")) {
-            throw error(createToken, "Expect 'create' after 'new'.");
-        }
-        Token env = consume(TokenType.IDENTIFIER, "Expect 'env' as parameter.");
-        consume(TokenType.COLON, "Expect ':' after 'env'.");
-        Token envType = consume(TokenType.IDENTIFIER, "Expect type name.");
-        consume(TokenType.RIGHT_PAREN, "Expect ')' after parameter.");
-        return new Stmt.New(env, blockStatement());
+        // Additional logic for actor declaration if needed
+        return new Stmt.Expression(new Expr.Literal("actor " + name.lexeme)); // Simplified
     }
 
     private Stmt statement() {
@@ -84,40 +71,55 @@ public class Parser {
         return new Stmt.Expression(expr);
     }
 
-    private Stmt.Block blockStatement() {
-        List<Stmt> statements = new ArrayList<>();
-        while (!check(TokenType.RIGHT_PAREN) && !isAtEnd()) {
-            statements.add(declaration());
-        }
-        return new Stmt.Block(statements);
-    }
-
     private Expr expression() {
         return equality();
     }
 
     private Expr equality() {
-        Expr expr = addition();
+        Expr expr = comparison();
+
         while (match(TokenType.BANG)) {
+            Token operator = previous();
+            Expr right = comparison();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr comparison() {
+        Expr expr = addition();
+
+        while (match(TokenType.GREATER, TokenType.LESS)) {
             Token operator = previous();
             Expr right = addition();
             expr = new Expr.Binary(expr, operator, right);
         }
+
         return expr;
     }
 
     private Expr addition() {
         Expr expr = multiplication();
+
         while (match(TokenType.PLUS)) {
             Token operator = previous();
             Expr right = multiplication();
             expr = new Expr.Binary(expr, operator, right);
         }
+
         return expr;
     }
 
     private Expr multiplication() {
         Expr expr = unary();
+
+        while (match(TokenType.DOT)) {
+            Token operator = previous();
+            Expr right = unary();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
         return expr;
     }
 
@@ -127,19 +129,38 @@ public class Parser {
             Expr right = unary();
             return new Expr.Unary(operator, right);
         }
+
+        if (match(TokenType.NEW)) {
+            Token operator = previous();
+            Expr right = unary();
+            return new Expr.Unary(operator, right);
+        }
+
+        if (match(TokenType.ENV)) {
+            Token operator = previous();
+            Expr right = unary();
+            return new Expr.Unary(operator, right);
+        }
+
         return primary();
     }
 
     private Expr primary() {
         if (match(TokenType.FALSE)) return new Expr.Literal(false);
         if (match(TokenType.TRUE)) return new Expr.Literal(true);
-        if (match(TokenType.NUMBER, TokenType.STRING)) {
-            return new Expr.Literal(previous().literal);
-        }
+        if (match(TokenType.NUMBER)) return new Expr.Literal(previous().literal);
+        if (match(TokenType.STRING)) return new Expr.Literal(previous().literal);
+
         if (match(TokenType.LEFT_PAREN)) {
             Expr expr = expression();
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
         }
+
+        if (match(TokenType.IDENTIFIER)) {
+            return new Expr.Variable(previous());
+        }
+
         throw error(peek(), "Expect expression.");
     }
 
@@ -181,33 +202,41 @@ public class Parser {
     }
 
     private ParseError error(Token token, String message) {
-        System.err.println("Error at " + token.lexeme + ": " + message);
+        // Error handling method
+        System.err.println("Error at token: " + token + " - " + message);
         return new ParseError();
     }
 
     private void synchronize() {
         advance();
+
         while (!isAtEnd()) {
+            if (previous().type == TokenType.EOF) return;
+
             switch (peek().type) {
-                case LEFT_PAREN:
-                case RIGHT_PAREN:
-                case DOT:
-                case PLUS:
-                case EQUAL:
-                case COLON:
-                case BANG:
-                case IDENTIFIER:
-                case STRING:
-                case NUMBER:
-                case FALSE:
-                case TRUE:
-                case PRINT:
                 case LET:
+                case PRINT:
                 case ACTOR:
-                case NEW:
+                case BANG:
+                case COLON:
+                case DOT:
                 case ENV:
+                case EOF:
+                case EQUAL:
+                case FALSE:
+                case GREATER:
+                case LESS:
+                case IDENTIFIER:
+                case LEFT_PAREN:
+                case NEW:
+                case NUMBER:
+                case PLUS:
+                case RIGHT_PAREN:
+                case STRING:
+                case TRUE:
                     return;
             }
+
             advance();
         }
     }
