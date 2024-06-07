@@ -34,7 +34,7 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = 'edu.sou.cs452.hw3j.Pony'
+    mainClass = 'edu.sou.cs452.hw3j.App'
 }
 
 tasks.named('test') {
