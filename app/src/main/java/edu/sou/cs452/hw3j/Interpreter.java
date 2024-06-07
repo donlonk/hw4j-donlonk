@@ -25,10 +25,26 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     return (Double) left > (Double) right;
                 }
                 throw new RuntimeException("Operands must be two numbers.");
+            case DOT:
+                // Assuming left is an object with methods
+                if (left instanceof String && right instanceof String) {
+                    // Handle method calls on objects
+                    return handleMethodCall(left.toString(), right.toString());
+                }
+                throw new RuntimeException("Invalid operands for dot operator.");
             // Add other cases for different operators if needed
             default:
                 throw new RuntimeException("Unknown operator: " + expr.operator.type);
         }
+    }
+
+    private Object handleMethodCall(String object, String method) {
+        // Simplified handling of method calls
+        if ("print".equals(method)) {
+            System.out.println(object);
+            return null;
+        }
+        throw new RuntimeException("Unknown method: " + method);
     }
 
     @Override
@@ -64,6 +80,25 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Object visitVariableExpr(Expr.Variable expr) {
         // Simplified variable handling, assume variables have been defined
         return "variable " + expr.name.lexeme;
+    }
+
+    @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        Object callee = evaluate(expr.callee);
+        // Simplified call handling, assume it's a print call for now
+        if (callee.toString().equals("print")) {
+            for (Expr argument : expr.arguments) {
+                System.out.println(evaluate(argument));
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        // Simplified assignment handling, assume variables have been defined
+        return value;
     }
 
     private Object evaluate(Expr expr) {

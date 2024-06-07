@@ -1,5 +1,7 @@
 package edu.sou.cs452.hw3j;
 
+import java.util.List;
+
 public abstract class Expr {
     public interface Visitor<R> {
         R visitBinaryExpr(Binary expr);
@@ -7,6 +9,8 @@ public abstract class Expr {
         R visitLiteralExpr(Literal expr);
         R visitUnaryExpr(Unary expr);
         R visitVariableExpr(Variable expr);
+        R visitCallExpr(Call expr);
+        R visitAssignExpr(Assign expr);
     }
 
     public static class Binary extends Expr {
@@ -77,6 +81,38 @@ public abstract class Expr {
         @Override
         public <R> R accept(Visitor<R> visitor) {
             return visitor.visitVariableExpr(this);
+        }
+    }
+
+    public static class Call extends Expr {
+        public final Expr callee;
+        public final Token paren;
+        public final List<Expr> arguments;
+
+        public Call(Expr callee, Token paren, List<Expr> arguments) {
+            this.callee = callee;
+            this.paren = paren;
+            this.arguments = arguments;
+        }
+
+        @Override
+        public <R> R accept(Visitor<R> visitor) {
+            return visitor.visitCallExpr(this);
+        }
+    }
+
+    public static class Assign extends Expr {
+        public final Token name;
+        public final Expr value;
+
+        public Assign(Token name, Expr value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        @Override
+        public <R> R accept(Visitor<R> visitor) {
+            return visitor.visitAssignExpr(this);
         }
     }
 

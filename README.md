@@ -28,47 +28,25 @@ actor Main
     env.out.print(z.string())
 
 # Error
- > Task :app:run FAILED
-Unexpected character: >
-Error at (: Expect 'env' as parameter.
-Error at env: Expect expression.
-Error at :: Expect expression.
-Error at Env: Expect expression.
-Error at ): Expect expression.
-Error at =: Expect expression.
-Error at =: Expect ':' after variable name.
-Error at env: Expect expression.
-Error at .: Expect expression.
-Error at out: Expect expression.
-Error at .: Expect expression.
-Error at pony: Expect expression.
-Error at ): Expect expression.
-Error at env: Expect expression.
-Error at .: Expect expression.
-Error at out: Expect expression.
-Error at .: Expect expression.
-Error at x: Expect expression.
-Error at +: Expect expression.
-Error at y: Expect expression.
-Error at ): Expect expression.
-Error at .: Expect expression.
-Error at string: Expect expression.
-Error at ): Expect expression.
-Error at ): Expect expression.
-Error at env: Expect expression.
-Error at .: Expect expression.
-Error at out: Expect expression.
-Error at .: Expect expression.
-Error at z: Expect expression.
-Error at .: Expect expression.
-Error at string: Expect expression.
-Error at ): Expect expression.
-Error at ): Expect expression.
-Exception in thread "main" java.lang.NullPointerException: Cannot invoke "edu.sou.cs452.hw3j.Stmt.accept(edu.sou.cs452.hw3j.Stmt$Visitor)" because "stmt" is null
-        at edu.sou.cs452.hw3j.Interpreter.execute(Interpreter.java:20)
-        at edu.sou.cs452.hw3j.Interpreter.interpret(Interpreter.java:12)
-        at edu.sou.cs452.hw3j.App.run(App.java:56)
-        at edu.sou.cs452.hw3j.App.runFile(App.java:28)
-        at edu.sou.cs452.hw3j.App.main(App.java:20)
+@donlonk ➜ /workspaces/hw4j-donlonk (main) $ ./gradlew run --args="/workspaces/hw4j-donlonk/pony-hw4j.pony"
+Path for java installation '/usr/lib/jvm/openjdk-17' (Common Linux Locations) does not contain a java executable
+
+> Task :app:run
+Error at token: COLON : null - Expect expression.
+Error at token: RIGHT_PAREN ) null - Expect expression.
+Error at token: EQUAL = null - Expect expression.
+Error at token: GREATER > null - Expect expression.
+Error at token: EQUAL = null - Expect ':' after variable name.
+Error at token: DOT . null - Expect expression.
+Error at token: PRINT print null - Expect expression.
+Error at token: DOT . null - Expect expression.
+Error at token: PRINT print null - Expect expression.
+Error at token: DOT . null - Expect expression.
+Error at token: PRINT print null - Expect expression.
+Statements: [edu.sou.cs452.hw3j.Stmt$Expression@372f7a8d, edu.sou.cs452.hw3j.Stmt$Expression@2f92e0f4, edu.sou.cs452.hw3j.Stmt$Expression@28a418fc, edu.sou.cs452.hw3j.Stmt$Expression@5305068a, edu.sou.cs452.hw3j.Stmt$Expression@1f32e575, edu.sou.cs452.hw3j.Stmt$Var@279f2327, edu.sou.cs452.hw3j.Stmt$Var@2ff4acd0, edu.sou.cs452.hw3j.Stmt$Expression@54bedef2, edu.sou.cs452.hw3j.Stmt$Var@5caf905d, edu.sou.cs452.hw3j.Stmt$Expression@27716f4]
+Runtime error: Invalid operands for dot operator.
+
+BUILD SUCCESSFUL in 1s
+2 actionable tasks: 2 executed
 
 It looks like the program is expecting an expression after alomost every symbol which is not right and I am not sure how to fix it.

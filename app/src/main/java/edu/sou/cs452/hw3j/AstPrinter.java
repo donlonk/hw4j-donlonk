@@ -28,6 +28,22 @@ public class AstPrinter implements Expr.Visitor<String> {
         return expr.name.lexeme;
     }
 
+    @Override
+    public String visitCallExpr(Expr.Call expr) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("(call ").append(expr.callee.accept(this));
+        for (Expr argument : expr.arguments) {
+            builder.append(" ").append(argument.accept(this));
+        }
+        builder.append(")");
+        return builder.toString();
+    }
+
+    @Override
+    public String visitAssignExpr(Expr.Assign expr) {
+        return parenthesize("=", new Expr.Variable(expr.name), expr.value);
+    }
+
     public String print(Expr expr) {
         return expr.accept(this);
     }

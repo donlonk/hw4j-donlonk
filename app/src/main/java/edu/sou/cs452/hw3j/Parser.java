@@ -72,7 +72,25 @@ public class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return assignment();
+    }
+
+    private Expr assignment() {
+        Expr expr = equality();
+
+        if (match(TokenType.EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable) expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
     }
 
     private Expr equality() {
@@ -116,11 +134,34 @@ public class Parser {
 
         while (match(TokenType.DOT)) {
             Token operator = previous();
-            Expr right = unary();
+            Expr right = call();
             expr = new Expr.Binary(expr, operator, right);
         }
 
         return expr;
+    }
+
+    private Expr call() {
+        Expr expr = primary();
+        while (true) {
+            if (match(TokenType.LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+        return expr;
+    }
+
+    private Expr finishCall(Expr callee) {
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
+                arguments.add(expression());
+            } while (match(TokenType.RIGHT_PAREN));
+        }
+        Token paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
+        return new Expr.Call(callee, paren, arguments);
     }
 
     private Expr unary() {
