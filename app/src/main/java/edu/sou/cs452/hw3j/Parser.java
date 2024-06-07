@@ -1,4 +1,3 @@
-
 package edu.sou.cs452.hw3j;
 
 import java.util.List;
@@ -24,9 +23,8 @@ public class Parser {
 
     private Stmt declaration() {
         try {
-            if (match(TokenType.VAR)) return varDeclaration();
             if (match(TokenType.LET)) return letDeclaration();
-            // Add more declarations as needed
+            if (match(TokenType.ACTOR)) return actorDeclaration();
             return statement();
         } catch (ParseError error) {
             synchronize();
@@ -34,67 +32,64 @@ public class Parser {
         }
     }
 
-    private Stmt varDeclaration() {
+    private Stmt letDeclaration() {
         Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
-
-        // Handle type annotations if required
-        if (match(TokenType.COLON)) {
-            Token type = consume(TokenType.IDENTIFIER, "Expect type name.");
-            // Handle the type annotation logic as needed
-        }
+        consume(TokenType.COLON, "Expect ':' after variable name.");
+        Token type = consume(TokenType.IDENTIFIER, "Expect type name.");
 
         Expr initializer = null;
         if (match(TokenType.EQUAL)) {
             initializer = expression();
         }
-
-        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
     }
 
-    private Stmt letDeclaration() {
-        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
-
-        // Handle type annotations if required
-        if (match(TokenType.COLON)) {
-            Token type = consume(TokenType.IDENTIFIER, "Expect type name.");
-            // Handle the type annotation logic as needed
+    private Stmt actorDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect actor name.");
+        List<Stmt> body = new ArrayList<>();
+        while (!check(TokenType.RIGHT_PAREN) && !isAtEnd()) {
+            if (match(TokenType.NEW)) {
+                body.add(newDeclaration());
+            } else {
+                body.add(declaration());
+            }
         }
+        return new Stmt.Actor(name, body);
+    }
 
-        Expr initializer = expression();
-
-        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
-        return new Stmt.Var(name, initializer);
+    private Stmt newDeclaration() {
+        Token createToken = consume(TokenType.IDENTIFIER, "Expect 'create' after 'new'.");
+        if (!createToken.lexeme.equals("create")) {
+            throw error(createToken, "Expect 'create' after 'new'.");
+        }
+        Token env = consume(TokenType.IDENTIFIER, "Expect 'env' as parameter.");
+        consume(TokenType.COLON, "Expect ':' after 'env'.");
+        Token envType = consume(TokenType.IDENTIFIER, "Expect type name.");
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after parameter.");
+        return new Stmt.New(env, blockStatement());
     }
 
     private Stmt statement() {
         if (match(TokenType.PRINT)) return printStatement();
-        if (match(TokenType.LEFT_BRACE)) return new Stmt.Block(block());
-
         return expressionStatement();
     }
 
     private Stmt printStatement() {
         Expr value = expression();
-        consume(TokenType.SEMICOLON, "Expect ';' after value.");
         return new Stmt.Print(value);
     }
 
     private Stmt expressionStatement() {
         Expr expr = expression();
-        consume(TokenType.SEMICOLON, "Expect ';' after expression.");
         return new Stmt.Expression(expr);
     }
 
-    private List<Stmt> block() {
+    private Stmt.Block blockStatement() {
         List<Stmt> statements = new ArrayList<>();
-
-        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+        while (!check(TokenType.RIGHT_PAREN) && !isAtEnd()) {
             statements.add(declaration());
         }
-
-        consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
-        return statements;
+        return new Stmt.Block(statements);
     }
 
     private Expr expression() {
@@ -102,78 +97,49 @@ public class Parser {
     }
 
     private Expr equality() {
-        Expr expr = comparison();
-
-        while (match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) {
-            Token operator = previous();
-            Expr right = comparison();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
-    }
-
-    private Expr comparison() {
         Expr expr = addition();
-
-        while (match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL)) {
+        while (match(TokenType.BANG)) {
             Token operator = previous();
             Expr right = addition();
             expr = new Expr.Binary(expr, operator, right);
         }
-
         return expr;
     }
 
     private Expr addition() {
         Expr expr = multiplication();
-
-        while (match(TokenType.MINUS, TokenType.PLUS)) {
+        while (match(TokenType.PLUS)) {
             Token operator = previous();
             Expr right = multiplication();
             expr = new Expr.Binary(expr, operator, right);
         }
-
         return expr;
     }
 
     private Expr multiplication() {
         Expr expr = unary();
-
-        while (match(TokenType.SLASH, TokenType.STAR)) {
-            Token operator = previous();
-            Expr right = unary();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
         return expr;
     }
 
     private Expr unary() {
-        if (match(TokenType.BANG, TokenType.MINUS)) {
+        if (match(TokenType.BANG)) {
             Token operator = previous();
             Expr right = unary();
             return new Expr.Unary(operator, right);
         }
-
         return primary();
     }
 
     private Expr primary() {
         if (match(TokenType.FALSE)) return new Expr.Literal(false);
         if (match(TokenType.TRUE)) return new Expr.Literal(true);
-        if (match(TokenType.NIL)) return new Expr.Literal(null);
-
         if (match(TokenType.NUMBER, TokenType.STRING)) {
             return new Expr.Literal(previous().literal);
         }
-
         if (match(TokenType.LEFT_PAREN)) {
             Expr expr = expression();
-            consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
         }
-
         throw error(peek(), "Expect expression.");
     }
 
@@ -184,7 +150,6 @@ public class Parser {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -222,23 +187,27 @@ public class Parser {
 
     private void synchronize() {
         advance();
-
         while (!isAtEnd()) {
-            if (previous().type == TokenType.SEMICOLON) return;
-
             switch (peek().type) {
-                case CLASS:
-                case FUN:
-                case VAR:
-                case LET:
-                case FOR:
-                case IF:
-                case WHILE:
+                case LEFT_PAREN:
+                case RIGHT_PAREN:
+                case DOT:
+                case PLUS:
+                case EQUAL:
+                case COLON:
+                case BANG:
+                case IDENTIFIER:
+                case STRING:
+                case NUMBER:
+                case FALSE:
+                case TRUE:
                 case PRINT:
-                case RETURN:
+                case LET:
+                case ACTOR:
+                case NEW:
+                case ENV:
                     return;
             }
-
             advance();
         }
     }

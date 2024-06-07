@@ -2,22 +2,16 @@ package edu.sou.cs452.hw3j;
 
 public enum TokenType {
     // Single-character tokens.
-    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-    COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR, COLON, // Added COLON here
+    LEFT_PAREN, RIGHT_PAREN, DOT, PLUS, EQUAL, COLON,
 
     // One or two character tokens.
-    BANG, BANG_EQUAL,
-    EQUAL, EQUAL_EQUAL,
-    GREATER, GREATER_EQUAL,
-    LESS, LESS_EQUAL,
+    BANG,
 
     // Literals.
     IDENTIFIER, STRING, NUMBER,
 
     // Keywords.
-    AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
-    PRINT, RETURN, SUPER, THIS, TRUE, VAR, LET, WHILE,
-    ACTOR, NEW, ENV,
+    PRINT, LET, TRUE, FALSE, ACTOR, NEW, ENV,
 
     EOF
 }

@@ -1,8 +1,6 @@
 package edu.sou.cs452.hw3j;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private final Environment<Object> globals = new Environment<>();
@@ -53,6 +51,18 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitActorStmt(Stmt.Actor stmt) {
+        executeBlock(stmt.body, new Environment<>(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitNewStmt(Stmt.New stmt) {
+        execute(stmt.block);
+        return null;
+    }
+
     public void executeBlock(List<Stmt> statements, Environment<Object> environment) {
         Environment<Object> previous = this.environment;
         try {
@@ -73,12 +83,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         checkOperands(expr.operator, left, right);
 
         switch (expr.operator.type) {
-            case MINUS:
-                return (double) left - (double) right;
-            case SLASH:
-                return (double) left / (double) right;
-            case STAR:
-                return (double) left * (double) right;
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
                     return (double) left + (double) right;
@@ -89,21 +93,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 }
 
                 throw new RuntimeError(expr.operator, "Operands must be two numbers or two strings.");
-            case GREATER:
-                return (double) left > (double) right;
-            case GREATER_EQUAL:
-                return (double) left >= (double) right;
-            case LESS:
-                return (double) left < (double) right;
-            case LESS_EQUAL:
-                return (double) left <= (double) right;
-            case BANG_EQUAL:
-                return !isEqual(left, right);
-            case EQUAL_EQUAL:
+            case EQUAL:
                 return isEqual(left, right);
+            default:
+                throw new RuntimeError(expr.operator, "Unknown operator.");
         }
-
-        return null;
     }
 
     @Override
@@ -121,13 +115,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object right = evaluate(expr.right);
 
         switch (expr.operator.type) {
-            case MINUS:
-                return -(double) right;
             case BANG:
                 return !isTruthy(right);
+            default:
+                throw new RuntimeError(expr.operator, "Unknown operator.");
         }
-
-        return null;
     }
 
     @Override
